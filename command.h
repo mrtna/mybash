@@ -17,4 +17,4 @@ int countParams(char *input);
 
 int printCommand(Command c);
 
-char *getStringFromParams(Command c);
+void executeCommand(Command c);

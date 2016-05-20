@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "command.h"
+#include <unistd.h>
 
 Command newCommand(char *input) {
 	if(input == NULL) return NULL;
@@ -47,17 +48,14 @@ char* trim(char *input) {
 		}
 	}
 	trimmedString[j] = '\0';
+	trimmedString[0] = trimmedString[0] == ' ' ? '' : trimmedString[0];
 	return trimmedString;
 }
 
 int parseCommand(char *input, Command c) {
 	if(input == NULL) return -1;
 
-	printf("String : %s\n", input);
-
 	input = trim(input);
-
-	printf("Trimmed : %s\n", input);
 
 	char field_separator = ' ';
 	int i = 0;
@@ -116,19 +114,16 @@ int printCommand(Command c) {
 	}
 }
 
-char *getStringFromParams(Command c) {
-	char *finalString = malloc(sizeof(char)*32*c->param_number);
+char **getParamsAsArray(Command c) {
 	int i = 0;
-	int j = 0;
-	int k = 0;
-	for(i ; i < c->param_number ; i++) {
-		for(j ; j < strlen(c->command_params[i]) ; j++) {
-			finalString[k] = c->command_params[i][j];
-			k++;
-		}
-		finalString[k] = ' ';
-		k++;
+	char **params = malloc(1+c->param_number*sizeof(char*));
+	params[i] = c->command_name;
+	for(i;i<c->param_number;i++) {
+		params[i+1] = c->command_params[i];
 	}
-	finalString[k] = '\0';
-	return finalString;
+}
+
+void executeCommand(Command c) {
+	char **params = getParamsAsArray(c);
+	execvp(params[0], params);
 }
