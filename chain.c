@@ -54,7 +54,6 @@ int executeChain(List l) {
 	int fd_in = 0;
 	int i = 0;
 	do {
-			printCommand(current->c);
 		pipe(p);
 		if ((pid = fork()) == -1){
 			exit(EXIT_FAILURE);
