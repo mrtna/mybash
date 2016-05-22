@@ -4,14 +4,6 @@
 #include "command.h"
 #include <unistd.h>
 
-Command newCommand(char *input) {
-	if(input == NULL) return NULL;
-	Command c = (Command) malloc(sizeof(struct COMMAND));
-	c->command_params = malloc(sizeof(char*));
-	c->command_params[0] = malloc(sizeof(char) * 32);
-	parseCommand(input, c);
-	return c;
-}
 
 int addName(Command c, char* name) {
 	if(c == NULL || name == NULL) {
@@ -36,6 +28,11 @@ char* trim(char *input) {
 	int j = 0;
 	char *trimmedString = malloc(sizeof(char) * strlen(input));
 
+	// Ignorer les premiers espaces inutiles
+	while(input[i] == ' ') {
+		i++;
+	}
+
 	for(i; input[i] != '\0' ; i++) {
 		if(input[i] == ' ') {
 			numOfSpaces++;
@@ -48,7 +45,6 @@ char* trim(char *input) {
 		}
 	}
 	trimmedString[j] = '\0';
-	trimmedString[0] = trimmedString[0] == ' ' ? '' : trimmedString[0];
 	return trimmedString;
 }
 
@@ -121,9 +117,19 @@ char **getParamsAsArray(Command c) {
 	for(i;i<c->param_number;i++) {
 		params[i+1] = c->command_params[i];
 	}
+	return params;
 }
 
 void executeCommand(Command c) {
 	char **params = getParamsAsArray(c);
 	execvp(params[0], params);
+}
+
+Command newCommand(char *input) {
+	if(input == NULL) return NULL;
+	Command c = (Command) malloc(sizeof(struct COMMAND));
+	c->command_params = malloc(sizeof(char*));
+	c->command_params[0] = malloc(sizeof(char) * 32);
+	parseCommand(input, c);
+	return c;
 }

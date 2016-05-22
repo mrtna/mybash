@@ -1,4 +1,5 @@
 #!/bin/bash
 clear
-gcc mybash.c command.c command.h chain.c chain.h -o launcher
+gcc mybash.c chain.c chain.h command.c command.h -o launcher
+chmod +x launcher
 ledit ./launcher

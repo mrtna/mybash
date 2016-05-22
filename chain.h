@@ -4,14 +4,20 @@
 #include <sys/types.h>
 #include <string.h>
 #include <signal.h>
+#include "command.h"
 
-typedef struct LIST {
+typedef enum { PIPE, IFFAIL, IFSUCCESS } ChainType;
+
+typedef struct LIST LIST, *List;
+
+struct LIST {
 	Command c;
 	char *fifo;
-	Elem next;
+	List next;
 	int index;
-	char separator;
-} *List, *Elem;
+	ChainType type;
+  	int endsWithFile;
+};
 
 List createList();
 int count(List l);
