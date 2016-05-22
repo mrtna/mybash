@@ -54,6 +54,7 @@ int executeChain(List l) {
 	int fd_in = 0;
 	int i = 0;
 	do {
+			printCommand(current->c);
 		pipe(p);
 		if ((pid = fork()) == -1){
 			exit(EXIT_FAILURE);
@@ -62,17 +63,18 @@ int executeChain(List l) {
 			dup2(fd_in, 0); //change the input according to the old one
 			dup2(p[1], 1);
 			close(p[0]);
+			close(p[1]);
 			executeCommand(current->c);
 			exit(EXIT_FAILURE);
 		} else {
 			int status;
-			wait(&status);
-			dup2(p[0], 0);
-			close(p[1]);				
+			close(p[1]);	
+			wait(&status);		
 
+	        	printf("Wut %d\n", status);
 			if(status == 0) {
 				if(current->index == count(l)-1) {
-					printf("Ok\n");
+					printf("Reading...\n");	
 					char *readbuffer = malloc(1*sizeof(char));
 					int nbytes;
 					while(nbytes = read(p[0], readbuffer, sizeof(readbuffer)) > 0){
