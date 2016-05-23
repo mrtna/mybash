@@ -1,10 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/wait.h>
+#include <signal.h>
 
 typedef struct COMMAND {
 	char command_name[128];
 	char **command_params;
+	int hasRedirect;
+  	char *fileRedirect;
 	int param_number;
+	pid_t parentPid;
 } *Command;
 
 Command newCommand(char* input);

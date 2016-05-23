@@ -12,10 +12,7 @@
 
 void handle_signal(int signal) {
 
-	printf("%d\n",signal);
-
 	if( signal== SIGINT) {
-		printf ("Signal caught, exiting \n");
 		exit(0);
 	}
 }
@@ -35,11 +32,6 @@ int main() {
 		fflush(stdout);
 
 		scanf("%[^\n]%*c", myCommand);
-		if(strcmp(myCommand, "exit") == 0) {
-			exit(0);
-		}
-
-		Command c = newCommand(myCommand);
 		
 		List chain = createChainFromString(myCommand);
 		executeChain(chain);

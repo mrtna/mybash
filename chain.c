@@ -70,10 +70,8 @@ int executeChain(List l) {
 			close(p[1]);	
 			wait(&status);		
 
-	        	printf("Wut %d\n", status);
 			if(status == 0) {
 				if(current->index == count(l)-1) {
-					printf("Reading...\n");	
 					char *readbuffer = malloc(1*sizeof(char));
 					int nbytes;
 					while(nbytes = read(p[0], readbuffer, sizeof(readbuffer)) > 0){
@@ -81,11 +79,25 @@ int executeChain(List l) {
 	        		}
 	        		fflush(stdout);
 
-				}      	
+				}  
+				if(current->type == IFFAIL) {
+					current = current->next;
+					if(current == NULL) {
+						printf("Erreur dans la syntaxe\n");
+						return -1;
+					} else {
+						current = current->next;
+					}
+				} else if(current->type == IFSUCCESS) {
+					current = current->next;
+				} else {
+					current = current->next;
+				}    	
+			} else {
+				return -1;
 			}
 			fd_in = p[0]; //save the input for the next command
 		}
-		current = current->next;
 		i++;
 	} while(current != NULL);
 }
@@ -106,20 +118,38 @@ List createChainFromString(char *string) {
 			if(strlen(string) - i > 1) {
 				if(string[i+1] == ' ') {
 					currentElem->c = newCommand(current);
-					current = malloc(1024*sizeof(char));
+					currentElem->c->parentPid = getPid();
 			        currentElem->next = malloc(sizeof(struct LIST));
 			        currentElem->next->index = currentElem->index+1;
+			        currentElem->type = PIPE;
 			        currentElem = currentElem->next;
 					i++;
 					j=0;
+					current = malloc(1024*sizeof(char));
 				} else if(string[i+1] == '|') {
-			          currentElem->next = createList();
+			          currentElem->c = newCommand(current);
+					  currentElem->c->parentPid = getPid();
+			          currentElem->next = malloc(sizeof(struct LIST));
+			          currentElem->next->index = currentElem->index+1;
+			          currentElem->type = IFFAIL;
+			          currentElem = currentElem->next;
+			          i++;
+			          j=0;
 				} else {
 					printf("Erreur de format\n");
 				}
 			} else {
 				printf("Erreur de format");
 			}
+		} else if(string[i] == '&' && strlen(string) - i > 1 && string[i+1] == '&') {
+          currentElem->c = newCommand(current);
+		  currentElem->c->parentPid = getPid();
+          currentElem->next = malloc(sizeof(struct LIST));
+          currentElem->next->index = currentElem->index+1;
+          currentElem->type = IFSUCCESS;
+          currentElem = currentElem->next;
+          i++;
+          j=0;
 		}
     // Sinon, on ajoute simplement
     // la chaine parcourue

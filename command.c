@@ -121,6 +121,9 @@ char **getParamsAsArray(Command c) {
 }
 
 void executeCommand(Command c) {
+	if(strcmp(c->command_name, "exit") == 0 || strcmp(c->command_name, "quit") == 0) {
+		exit(0);
+	}
 	char **params = getParamsAsArray(c);
 	execvp(params[0], params);
 }
@@ -130,6 +133,8 @@ Command newCommand(char *input) {
 	Command c = (Command) malloc(sizeof(struct COMMAND));
 	c->command_params = malloc(sizeof(char*));
 	c->command_params[0] = malloc(sizeof(char) * 32);
+	c->hasRedirect = 0;
+	c->fileRedirect = malloc(256*sizeof(char));
 	parseCommand(input, c);
 	return c;
 }
