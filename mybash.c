@@ -13,6 +13,7 @@
 void handle_signal(int signal) {
 
 	if( signal== SIGINT) {
+		printf("Bye !");
 		exit(0);
 	}
 }

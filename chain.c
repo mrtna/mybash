@@ -102,6 +102,16 @@ int executeChain(List l) {
 	} while(current != NULL);
 }
 
+List chainCommand(List currentElem, char *string, ChainType type) {
+    currentElem->c = newCommand(string);
+    currentElem->c->parentPid = getpid();
+    currentElem->next = malloc(sizeof(struct LIST));
+    currentElem->next->index = currentElem->index+1;
+    currentElem->type = IFSUCCESS;
+    currentElem = currentElem->next;
+    return currentElem;
+}
+
 List createChainFromString(char *string) {
 	List list = createList();
 	int i = 0;
@@ -117,22 +127,12 @@ List createChainFromString(char *string) {
       // TODO gérer le type.
 			if(strlen(string) - i > 1) {
 				if(string[i+1] == ' ') {
-					currentElem->c = newCommand(current);
-					currentElem->c->parentPid = getPid();
-			        currentElem->next = malloc(sizeof(struct LIST));
-			        currentElem->next->index = currentElem->index+1;
-			        currentElem->type = PIPE;
-			        currentElem = currentElem->next;
+					currentElem = chainCommand(currentElem, current, PIPE);
 					i++;
 					j=0;
 					current = malloc(1024*sizeof(char));
 				} else if(string[i+1] == '|') {
-			          currentElem->c = newCommand(current);
-					  currentElem->c->parentPid = getPid();
-			          currentElem->next = malloc(sizeof(struct LIST));
-			          currentElem->next->index = currentElem->index+1;
-			          currentElem->type = IFFAIL;
-			          currentElem = currentElem->next;
+					currentElem = chainCommand(currentElem, current, IFFAIL);
 			          i++;
 			          j=0;
 				} else {
@@ -142,12 +142,7 @@ List createChainFromString(char *string) {
 				printf("Erreur de format");
 			}
 		} else if(string[i] == '&' && strlen(string) - i > 1 && string[i+1] == '&') {
-          currentElem->c = newCommand(current);
-		  currentElem->c->parentPid = getPid();
-          currentElem->next = malloc(sizeof(struct LIST));
-          currentElem->next->index = currentElem->index+1;
-          currentElem->type = IFSUCCESS;
-          currentElem = currentElem->next;
+			currentElem = chainCommand(currentElem, current, IFSUCCESS);
           i++;
           j=0;
 		}

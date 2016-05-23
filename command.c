@@ -122,6 +122,8 @@ char **getParamsAsArray(Command c) {
 
 void executeCommand(Command c) {
 	if(strcmp(c->command_name, "exit") == 0 || strcmp(c->command_name, "quit") == 0) {
+		printf("I kill\n");
+		kill(c->parentPid, SIGINT);
 		exit(0);
 	}
 	char **params = getParamsAsArray(c);
