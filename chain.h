@@ -22,5 +22,5 @@ struct LIST {
 List createList();
 int count(List l);
 int addCommand(List l, Command c);
-int executeChain(List l);
+int executeChain(List l, char *currentFolder);
 List createChainFromString(char *string);

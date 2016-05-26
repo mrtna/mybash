@@ -45,7 +45,7 @@ int addCommandToList(List l, Command c) {
 	return 1;
 }
 
-int executeChain(List l) {
+int executeChain(List l, char *currentFolder) {
 	if(l == NULL) return -1;
 	if(l->c == NULL) return -1;
 	List current = l;

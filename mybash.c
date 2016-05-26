@@ -10,14 +10,17 @@
 
 #define MAX_SIZE 1024
 
+char currentFolder[1024]; 
+
 void handle_signal(int signal) {
 
 	if( signal== SIGINT) {
-		printf("Bye !");
+		printf("Bye !\n");
 		exit(0);
 	}
 }
-//Commande cd
+
+
 int lsh_cd(char **args)
 {
 	if(args[1] == NULL) {
@@ -25,6 +28,8 @@ int lsh_cd(char **args)
 	} else {
 		if(chdir(args[1]) != 0) {
 			perror("lsh");
+		} else {
+			getcwd(currentFolder, sizeof(currentFolder));
 		}
 	}
 	return 1;
@@ -46,19 +51,20 @@ int lsh_num_builtins() {
 //Fonction qui permet d'éxécuter une commande builtin (cf:cd) ou sinon une commande forké (ls etc...)
 int lsh_exec(char *params)
 {
-	 int i,j;
+	int i,j;
 	char **paramz; 
 	List chain = createChainFromString(params);
-	j=printCommand(chain->c);//cette ligne là n'est que pour le test
-	paramz = getParamsAsArray(chain);
+	paramz = getParamsAsArray(chain->c);
 	for(i = 0; i< lsh_num_builtins(); i++){
-			if(strcmp(paramz[0], builtin_str[i]) == 0) {
+			if(strcmp(chain->c->command_name, builtin_str[i]) == 0) {
 				return (*builtin_func[i])(paramz);
 			}
 		}
-		return executeChain(chain);
+	return executeChain(chain, currentFolder);
 }
 int main() {
+
+	getcwd(currentFolder, sizeof(currentFolder));
 
 	struct sigaction sa;
 
@@ -70,7 +76,7 @@ int main() {
 	char *myCommand = malloc(MAX_SIZE*sizeof(char));
 	while(1) {
 		int i = 0;
-		printf("> ");
+		printf("%s> ", currentFolder);
 		fflush(stdout);
 		
 		scanf("%[^\n]%*c", myCommand);
