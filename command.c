@@ -69,13 +69,14 @@ int parseCommand(char *input, Command c) {
 				c->command_name[copieur] = '\0';
 				count++;
 			} else {
-				printf("Wut... %d\n", outputRedirection);
+				printf("C : %d\n", count);
 				if(inputRedirection) {
 					if(writingFile) {
 						c->fileRedirectInput[copieur] = '\0';
 						writingFile = 0;
 						inputRedirection = 0;
 					} else {
+					count--;
 						writingFile = 1;
 					}
 				} else if (outputRedirection) {
@@ -84,6 +85,7 @@ int parseCommand(char *input, Command c) {
 						writingFile = 0;
 						inputRedirection = 0;
 					} else {
+						count--;
 						writingFile = 1;
 					}
 				} else {
@@ -144,6 +146,7 @@ int parseCommand(char *input, Command c) {
 	if(input[i-1] == field_separator) {
 		count--;
 	}
+	printf("C final %d\n", count);
 	if(didPrintEndOfString == 0) {
 			if(count == 0) {
 				c->command_name[copieur] = '\0';
