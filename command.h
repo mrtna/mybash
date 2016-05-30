@@ -3,13 +3,17 @@
 #include <sys/wait.h>
 #include <signal.h>
 
+typedef enum { BOTH, INPUT, OUTPUT, NONE } RedirectionType;
+
 typedef struct COMMAND {
 	char command_name[128];
 	char **command_params;
-	int hasRedirect;
-  	char *fileRedirect;
 	int param_number;
-	pid_t parentPid;
+
+	int hasRedirect;
+	RedirectionType redirectionType;
+  	char *fileRedirectOutput;
+  	char *fileRedirectInput;
 } *Command;
 
 Command newCommand(char* input);
@@ -22,4 +26,4 @@ int countParams(char *input);
 
 int printCommand(Command c);
 
-void executeCommand(Command c);
+int executeCommand(Command c, int *fdin, int* pipe);

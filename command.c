@@ -3,7 +3,9 @@
 #include <string.h>
 #include "command.h"
 #include <unistd.h>
-
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 int addName(Command c, char* name) {
 	if(c == NULL || name == NULL) {
@@ -58,6 +60,8 @@ int parseCommand(char *input, Command c) {
 	int copieur = 0;
 	int didPrintEndOfString = 0;
 	int count = 0;
+	int inputRedirection;
+	int outputRedirection;
 	for(i ; input[i] != '\0' ; i++) {
 		if(input[i] == field_separator) {
 			if(count == 0) {
@@ -120,14 +124,56 @@ char **getParamsAsArray(Command c) {
 	return params;
 }
 
-void executeCommand(Command c) {
+int redirect_cd(char *directory)
+{
+
+	int fd = open("/tmp/cdout", O_WRONLY|O_NONBLOCK);
+	if(fd == -1) {
+		perror("Cannot open fifo");
+		return EXIT_FAILURE;
+	}
+	write(fd, directory, strlen(directory));
+	
+	close(fd);
+	
+	kill(getppid(), SIGUSR1);
+}
+
+//fonction permetant de "reconnaitre" la commande cd
+char *builtin_str[] = {
+	"cd"
+};
+
+int (*builtin_func[]) (char *) = {
+	&redirect_cd
+};
+
+int num_builtins() {
+	return sizeof(builtin_str) / sizeof(char *);
+}
+
+int executeCommand(Command c, int *input_fd, int* pipe) {
 	if(strcmp(c->command_name, "exit") == 0 || strcmp(c->command_name, "quit") == 0) {
 		printf("I kill\n");
-		kill(c->parentPid, SIGINT);
+		kill(getppid(), SIGINT);
 		exit(0);
 	}
+	int i, found = 0;;
 	char **params = getParamsAsArray(c);
-	execvp(params[0], params);
+	for(i = 0; i< num_builtins(); i++){
+		if(strcmp(c->command_name, builtin_str[i]) == 0) {
+			found = 1;
+			(*builtin_func[i])(params[1]);
+		}
+	}
+	if(!found) {
+		dup2(*input_fd, 0); //change the input according to the old one
+		dup2(pipe[1], 1);
+		close(pipe[0]);
+		close(pipe[1]);
+		execvp(params[0], params);
+	}
+	return 0;
 }
 
 Command newCommand(char *input) {
@@ -136,7 +182,8 @@ Command newCommand(char *input) {
 	c->command_params = malloc(sizeof(char*));
 	c->command_params[0] = malloc(sizeof(char) * 32);
 	c->hasRedirect = 0;
-	c->fileRedirect = malloc(256*sizeof(char));
+	c->fileRedirectOutput = malloc(256*sizeof(char));
+	c->fileRedirectInput = malloc(256*sizeof(char));
 	parseCommand(input, c);
 	return c;
 }

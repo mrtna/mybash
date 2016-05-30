@@ -16,11 +16,10 @@ struct LIST {
 	List next;
 	int index;
 	ChainType type;
-  	int endsWithFile;
 };
 
 List createList();
 int count(List l);
 int addCommand(List l, Command c);
-int executeChain(List l, char *currentFolder);
+int executeChain(List l);
 List createChainFromString(char *string);

@@ -13,7 +13,6 @@ List createList() {
 	list->c = NULL;
 	list->fifo = NULL;
 	list->index = 0;
-  list->endsWithFile = 0;
 	return list;
 }
 
@@ -45,7 +44,7 @@ int addCommandToList(List l, Command c) {
 	return 1;
 }
 
-int executeChain(List l, char *currentFolder) {
+int executeChain(List l) {
 	if(l == NULL) return -1;
 	if(l->c == NULL) return -1;
 	List current = l;
@@ -59,12 +58,8 @@ int executeChain(List l, char *currentFolder) {
 			exit(EXIT_FAILURE);
 		}
 		else if (pid == 0) {
-			dup2(fd_in, 0); //change the input according to the old one
-			dup2(p[1], 1);
-			close(p[0]);
-			close(p[1]);
-			executeCommand(current->c);
-			exit(EXIT_FAILURE);
+			int v = executeCommand(current->c, &fd_in, p);
+			exit(v);
 		} else {
 			int status;
 			close(p[1]);	
@@ -77,9 +72,10 @@ int executeChain(List l, char *currentFolder) {
 					while(nbytes = read(p[0], readbuffer, sizeof(readbuffer)) > 0){
 	                	printf("%s", readbuffer);
 	        		}
-	        		fflush(stdout);
 
-				}  
+				} else {
+					fd_in = p[0]; //save the input for the next command
+				}
 				if(current->type == IFFAIL) {
 					current = current->next;
 					if(current == NULL) {
@@ -94,17 +90,17 @@ int executeChain(List l, char *currentFolder) {
 					current = current->next;
 				}    	
 			} else {
+				close(p[0]);
 				return -1;
 			}
-			fd_in = p[0]; //save the input for the next command
 		}
 		i++;
 	} while(current != NULL);
+	close(p[0]);
 }
 
 List chainCommand(List currentElem, char *string, ChainType type) {
     currentElem->c = newCommand(string);
-    currentElem->c->parentPid = getpid();
     currentElem->next = malloc(sizeof(struct LIST));
     currentElem->next->index = currentElem->index+1;
     currentElem->type = IFSUCCESS;
