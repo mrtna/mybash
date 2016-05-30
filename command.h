@@ -3,7 +3,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-typedef enum { BOTH, INPUT, OUTPUT, NONE } RedirectionType;
+typedef enum { BOTH, BOTHEND, INPUT, OUTPUT, OUTPUTEND, NONE } RedirectionType;
 
 typedef struct COMMAND {
 	char command_name[128];
