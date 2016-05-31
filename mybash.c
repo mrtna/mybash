@@ -19,7 +19,7 @@ int fd;
 
 void createFifo() {
 	int codefifo = mkfifo("/tmp/cdout", 0666);
-	fd = open("/tmp/cdout", O_RDONLY|O_NONBLOCK);
+	fd = open("/tmp/cdout", O_RDONLY|O_NONBLOCK, 0666);
 	if (fd == -1) {
 		perror("Cannot open FIFO for read\n");
 	}
@@ -42,16 +42,19 @@ int handle_cd() {
 		string[i] = current;
 		i++;
 	}
-	if(strlen(string) && string[0] == '-') {
+	if(strlen(string) == 1 && string[0] == '-') {
 		chdir(oldFolder);
 		strcpy(oldFolder, currentFolder);
 		getcwd(currentFolder, sizeof(currentFolder));
-	} else if (strlen(string) && string[0] == '~'){
+	} else if (strlen(string) == 1 && string[0] == '~'){
 		chdir(getenv("HOME"));
 		strcpy(oldFolder, currentFolder);
 		getcwd(currentFolder, sizeof(currentFolder));
 	}
 	else {
+		if(strcmp("NOTADIRAMNK", string) == 0) {
+			strcpy(string, getenv("HOME"));
+		}
 		if(chdir(string) != 0) {
 			perror("custom_cd");
 		} else {
@@ -61,9 +64,21 @@ int handle_cd() {
 	}
 }
 
+void printTitle() {
+	printf("\n _______           _______  _        _ \n");    
+	printf("(  ____ \\|\\     /|(  ____ \\( \\      ( \\      \n");    
+printf("| (    \\/| )   ( || (    \\/| (      | (      \n");
+printf("| (_____ | (___) || (__    | |      | |      \n");
+printf("(_____  )|  ___  ||  __)   | |      | |      \n");
+printf(")      ) || (   ) || (      | |      | |      \n");
+printf("/\\____) || )   ( || (____/\\| (____/\\| (____/\\ \n");
+printf("\\_______)|/     \\|(_______/(_______/(_______/ \n");
+}
+
 void handle_signal(int signal) {
 	if( signal== SIGINT) {
-		printf("\n\n=====================\nBye !\nDevelopped by KNORR Nicolas and MARTIN Anthony\n\n");
+		printTitle();
+		printf("\n\n=====================\nDevelopped by KNORR Nicolas and MARTIN Anthony\n\n");
 		close(fd);
 		exit(0);
 	} else if (signal == SIGUSR1) {
@@ -85,7 +100,8 @@ int main() {
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGUSR1, &sa, NULL);
 
-	//printf("Bienvenue à \"mybash\". \nEntrez les commandes comme sur votre bash habituel.\n");
+
+	printTitle();	
 	char *myCommand = malloc(MAX_SIZE*sizeof(char));
 	while(1) {
 		int i = 0;

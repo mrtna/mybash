@@ -63,20 +63,20 @@ int parseCommand(char *input, Command c) {
 	int inputRedirection = 0;
 	int outputRedirection = 0;
 	int writingFile = 0;
+	int nameOver = 0;
 	for(i ; input[i] != '\0' ; i++) {
 		if(input[i] == field_separator) {
-			if(count == 0) {
+			if(nameOver == 0) {
 				c->command_name[copieur] = '\0';
+				nameOver = 1;
 				count++;
 			} else {
-				printf("C : %d\n", count);
 				if(inputRedirection) {
 					if(writingFile) {
 						c->fileRedirectInput[copieur] = '\0';
 						writingFile = 0;
 						inputRedirection = 0;
 					} else {
-					count--;
 						writingFile = 1;
 					}
 				} else if (outputRedirection) {
@@ -85,25 +85,28 @@ int parseCommand(char *input, Command c) {
 						writingFile = 0;
 						inputRedirection = 0;
 					} else {
-						count--;
 						writingFile = 1;
 					}
 				} else {
+					if(count == 0) {
+						count++;
+					}
 					c->command_params[count-1][copieur] = '\0';
 					c->command_params = realloc(c->command_params, (count) * sizeof(char*));
 					c->command_params[count] = malloc(sizeof(char)*32);	
-					count++;				
+					count++;
 				}
 			}
 			didPrintEndOfString = 1;
 			copieur = 0;
 		} else {
 			didPrintEndOfString = 0;
-			if(count == 0) {
+			if(count == 0 && !writingFile) {
 				c->command_name[copieur] = input[i];
 			}
 			else {
 				if(input[i] == '<') {
+					count--;
 					inputRedirection = 1;
 					if(c->redirectionType == OUTPUTEND) {
 						c->redirectionType = BOTHEND;
@@ -114,6 +117,8 @@ int parseCommand(char *input, Command c) {
 					}
 				} else if(input[i] == '>') {
 					if(strlen(input) > i+1 && input[i+1] == '>') {
+						count--;
+						i++;
 						outputRedirection = 1;
 						if(c->redirectionType == INPUT) {
 							c->redirectionType = BOTHEND;
@@ -121,6 +126,7 @@ int parseCommand(char *input, Command c) {
 							c->redirectionType = OUTPUTEND;
 						}
 					} else {
+						count--;
 						outputRedirection = 1;
 						if(c->redirectionType == INPUT) {
 							c->redirectionType = BOTH;
@@ -144,9 +150,10 @@ int parseCommand(char *input, Command c) {
 		}
 	}
 	if(input[i-1] == field_separator) {
-		count--;
+		if(didPrintEndOfString) {
+			count--;
+		}
 	}
-	printf("C final %d\n", count);
 	if(didPrintEndOfString == 0) {
 			if(count == 0) {
 				c->command_name[copieur] = '\0';
@@ -167,7 +174,7 @@ int printCommand(Command c) {
 	for(i=0 ; i < c->param_number; i++){
 		char* currentString = c->command_params[i];
 		int j;
-		printf("%d° - %s\n", i, currentString);
+		printf("%s\n", currentString);
 	}
 }
 
@@ -184,11 +191,13 @@ char **getParamsAsArray(Command c) {
 
 int redirect_cd(char *directory)
 {
-
-	int fd = open("/tmp/cdout", O_WRONLY|O_NONBLOCK);
+	int fd = open("/tmp/cdout", O_WRONLY|O_NONBLOCK, 0666);
 	if(fd == -1) {
 		perror("Cannot open fifo");
 		return EXIT_FAILURE;
+	}
+	if(directory == NULL) {
+		directory = "NOTADIRAMNK";
 	}
 	write(fd, directory, strlen(directory));
 	
@@ -197,13 +206,30 @@ int redirect_cd(char *directory)
 	kill(getppid(), SIGUSR1);
 }
 
+int handle_pwd(char *directory) {
+	char currentPwd[1024];
+	getcwd(currentPwd, 1024);
+	printf("%s\n", currentPwd);
+}
+
+int handle_quit(char *param) {
+	kill(getppid(), SIGINT);
+	exit(0);
+}
+
 //fonction permetant de "reconnaitre" la commande cd
 char *builtin_str[] = {
-	"cd"
+	"cd",
+	"pwd",
+	"exit",
+	"quit"
 };
 
 int (*builtin_func[]) (char *) = {
-	&redirect_cd
+	&redirect_cd,
+	&handle_pwd,
+	&handle_quit,
+	&handle_quit
 };
 
 int num_builtins() {
@@ -211,11 +237,6 @@ int num_builtins() {
 }
 
 int executeCommand(Command c, int *input_fd, int* pipe) {
-	if(strcmp(c->command_name, "exit") == 0 || strcmp(c->command_name, "quit") == 0) {
-		printf("I kill\n");
-		kill(getppid(), SIGINT);
-		exit(0);
-	}
 	int i, found = 0;;
 	char **params = getParamsAsArray(c);
 	for(i = 0; i< num_builtins(); i++){
@@ -229,38 +250,32 @@ int executeCommand(Command c, int *input_fd, int* pipe) {
 		int newOutput;
 		switch(c->redirectionType) {
 			case NONE :
-				printf("Rien\n");
 				newInput = *input_fd;
 				newOutput = pipe[1];
 			break;
 			case INPUT :
-				printf("PUT\n");
-				newInput = open(c->fileRedirectInput, O_RDONLY|O_CREAT);
+				newInput = open(c->fileRedirectInput, O_RDONLY|O_CREAT, 0666);
 				newOutput = pipe[1];
 			break;
 			case BOTH :
-				newInput = open(c->fileRedirectInput, O_RDONLY|O_CREAT);
-				newOutput = open(c->fileRedirectOutput, O_WRONLY|O_CREAT);
+				newInput = open(c->fileRedirectInput, O_RDONLY|O_CREAT, 0666);
+				newOutput = open(c->fileRedirectOutput, O_RDWR|O_CREAT, 0666);
 			break;
 			case OUTPUTEND :
-				printf("Wouf\n");
 				newInput = *input_fd;
-				newOutput = open(c->fileRedirectOutput, O_WRONLY|O_CREAT);
+				newOutput = open(c->fileRedirectOutput, O_RDWR|O_CREAT, 0666);
 				lseek(newOutput, 0, SEEK_END);
 			break;
 			case OUTPUT :
 				newInput = *input_fd;
-				printf("Ok\n");
-				newOutput = open(c->fileRedirectOutput, O_WRONLY|O_CREAT);
+				newOutput = open(c->fileRedirectOutput, O_RDWR|O_CREAT, 0666);
 			break;
 			case BOTHEND :
-				printf("Miaou\n");
-				newInput = open(c->fileRedirectInput, O_RDONLY|O_CREAT);
-				newOutput = open(c->fileRedirectOutput, O_WRONLY|O_CREAT);
+				newInput = open(c->fileRedirectInput, O_RDONLY|O_CREAT, 0666);
+				newOutput = open(c->fileRedirectOutput, O_RDWR|O_CREAT, 0666);
 				lseek(newOutput, 0, SEEK_END);
 			break;
 		}
-		printCommand(c);
 		dup2(newInput, 0);
 		dup2(newOutput, 1);
 		close(newInput);
